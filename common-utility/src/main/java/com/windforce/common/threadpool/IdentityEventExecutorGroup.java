@@ -1,6 +1,10 @@
 package com.windforce.common.threadpool;
 
+import java.util.concurrent.TimeUnit;
+
 import io.netty.util.concurrent.DefaultThreadFactory;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.ScheduledFuture;
 
 /**
  * wsocket.任务调度器
@@ -11,18 +15,46 @@ import io.netty.util.concurrent.DefaultThreadFactory;
  */
 public class IdentityEventExecutorGroup {
 
-	final private EventExecutor[] children;
+	static private EventExecutor[] children;
 
-	public IdentityEventExecutorGroup(int nThreads) {
-		children = new EventExecutor[nThreads];
-		for (int i = 0; i < nThreads; i++) {
-			children[i] = new EventExecutor(null, new DefaultThreadFactory("Identity-dispatcher"), true);
+	/**
+	 * 初始化
+	 * 
+	 * @param nThreads
+	 */
+	synchronized public static void init(int nThreads) {
+		if (children != null) {
+			children = new EventExecutor[nThreads];
+			for (int i = 0; i < nThreads; i++) {
+				children[i] = new EventExecutor(null, new DefaultThreadFactory("Identity-dispatcher"), true);
+			}
 		}
 	}
 
-	public void addTask(AbstractDispatcherHashCodeRunable dispatcherHashCode) {
+	/**
+	 * 添加同步任务
+	 * 
+	 * @param dispatcherHashCode
+	 * @return
+	 */
+	public static Future<?> addTask(AbstractDispatcherHashCodeRunable dispatcherHashCode) {
 		EventExecutor eventExecutor = children[dispatcherHashCode.getDispatcherHashCode() % children.length];
 		dispatcherHashCode.setEventExecutor(eventExecutor);
-		eventExecutor.addTask(dispatcherHashCode);
+		return eventExecutor.addTask(dispatcherHashCode);
+	}
+
+	/**
+	 * 添加延迟任务
+	 * 
+	 * @param dispatcherHashCode
+	 * @param delay
+	 * @param unit
+	 * @return
+	 */
+	public static ScheduledFuture<?> addScheduleTask(AbstractDispatcherHashCodeRunable dispatcherHashCode, long delay,
+			TimeUnit unit) {
+		EventExecutor eventExecutor = children[dispatcherHashCode.getDispatcherHashCode() % children.length];
+		dispatcherHashCode.setEventExecutor(eventExecutor);
+		return eventExecutor.addScheduleTask(dispatcherHashCode, delay, unit);
 	}
 }

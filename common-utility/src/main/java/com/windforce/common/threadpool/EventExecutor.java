@@ -2,6 +2,7 @@ package com.windforce.common.threadpool;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
@@ -9,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.ScheduledFuture;
 import io.netty.util.concurrent.SingleThreadEventExecutor;
 
 /**
@@ -17,7 +19,7 @@ import io.netty.util.concurrent.SingleThreadEventExecutor;
  * @since v1.0 2018年2月3日
  *
  */
-public class EventExecutor extends SingleThreadEventExecutor {
+class EventExecutor extends SingleThreadEventExecutor {
 
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(EventExecutor.class);
@@ -107,7 +109,17 @@ public class EventExecutor extends SingleThreadEventExecutor {
 		}
 	}
 
-	public Future<?> addTask(AbstractDispatcherHashCodeRunable task) {
+	public ScheduledFuture<?> addScheduleTask(AbstractDispatcherHashCodeRunable task, long delay, TimeUnit unit) {
+		statistics(task);
+		return schedule(task, delay, unit);
+	}
+
+	/**
+	 * 统计
+	 * 
+	 * @param task
+	 */
+	private void statistics(AbstractDispatcherHashCodeRunable task) {
 		synchronized (runableStatistics) {
 			if (!runableStatistics.containsKey(task.name())) {
 				runableStatistics.put(task.name(), RunableStatistics.valueOf(task.name()));
@@ -116,6 +128,10 @@ public class EventExecutor extends SingleThreadEventExecutor {
 		RunableStatistics rs = runableStatistics.get(task.name());
 		rs.getCurrentCount().incrementAndGet();
 		rs.getHistoryCount().incrementAndGet();
+	}
+
+	public Future<?> addTask(AbstractDispatcherHashCodeRunable task) {
+		statistics(task);
 		return submit(task);
 	}
 
