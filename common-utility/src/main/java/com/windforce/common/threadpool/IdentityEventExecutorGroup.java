@@ -2,6 +2,8 @@ package com.windforce.common.threadpool;
 
 import java.util.concurrent.TimeUnit;
 
+import com.windforce.common.utility.JsonUtils;
+
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.ScheduledFuture;
@@ -23,7 +25,7 @@ public class IdentityEventExecutorGroup {
 	 * @param nThreads
 	 */
 	synchronized public static void init(int nThreads) {
-		if (children != null) {
+		if (children == null) {
 			children = new EventExecutor[nThreads];
 			for (int i = 0; i < nThreads; i++) {
 				children[i] = new EventExecutor(null, new DefaultThreadFactory("Identity-dispatcher"), true);
@@ -56,5 +58,28 @@ public class IdentityEventExecutorGroup {
 		EventExecutor eventExecutor = children[dispatcherHashCode.getDispatcherHashCode() % children.length];
 		dispatcherHashCode.setEventExecutor(eventExecutor);
 		return eventExecutor.addScheduleTask(dispatcherHashCode, delay, unit);
+	}
+
+	/**
+	 * 添加定时器任务
+	 * 
+	 * @param dispatcherHashCode
+	 * @param initialDelay
+	 * @param period
+	 * @param unit
+	 * @return
+	 */
+	public static ScheduledFuture<?> addScheduleAtFixedRate(AbstractDispatcherHashCodeRunable dispatcherHashCode,
+			long initialDelay, long period, TimeUnit unit) {
+		EventExecutor eventExecutor = children[dispatcherHashCode.getDispatcherHashCode() % children.length];
+		dispatcherHashCode.setEventExecutor(eventExecutor);
+		return eventExecutor.addScheduleAtFixedRate(dispatcherHashCode, initialDelay, period, unit);
+	}
+
+	public static void printRunableStatistics() {
+		for (EventExecutor c : children) {
+			String stat = JsonUtils.map2String(c.getRunableStatistics());
+			System.out.println(stat);
+		}
 	}
 }

@@ -114,6 +114,18 @@ class EventExecutor extends SingleThreadEventExecutor {
 		return schedule(task, delay, unit);
 	}
 
+	public ScheduledFuture<?> addScheduleAtFixedRate(AbstractDispatcherHashCodeRunable task, long initialDelay,
+			long period, TimeUnit unit) {
+		return scheduleAtFixedRate(new Runnable() {
+
+			@Override
+			public void run() {
+				addTask(task);
+			}
+		}, initialDelay, period, unit);
+
+	}
+
 	/**
 	 * 统计
 	 * 
